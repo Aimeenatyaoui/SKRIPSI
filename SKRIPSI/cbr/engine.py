@@ -38,13 +38,32 @@ def _pick_label_column(df: pd.DataFrame) -> str | None:
     return None
 
 
-def load_case_base_df(path: Path) -> pd.DataFrame:
-    if not path.exists():
-        return pd.DataFrame()
-    if path.suffix.lower() in {".xlsx", ".xls"}:
-        return pd.read_excel(path)
-    return pd.read_csv(path)
+def load_case_base_df(path):
+    p = str(path)
+    is_url = p.startswith(("http://", "https://"))
 
+    try:
+        if not is_url:
+            from pathlib import Path
+            path = Path(path)
+            if not path.exists():
+                return pd.DataFrame()
+            if path.suffix.lower() in {".xlsx", ".xls"}:
+                return pd.read_excel(path)
+            return pd.read_csv(path)
+
+        import io
+        import certifi, requests
+
+        resp = requests.get(p, timeout=30, verify=certifi.where())
+        resp.raise_for_status()
+        content = resp.content
+
+        if p.lower().endswith((".xlsx", ".xls")):
+            return pd.read_excel(io.BytesIO(content))
+        return pd.read_csv(io.BytesIO(content))
+    except Exception:
+        return pd.DataFrame()
 
 def build_artifacts_from_case_base(case_base_df: pd.DataFrame) -> CBRArtifacts:
     missing_cols = [c for c in FEATURES if c not in case_base_df.columns]
