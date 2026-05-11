@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Local generated case base
+data/case_base.csv
