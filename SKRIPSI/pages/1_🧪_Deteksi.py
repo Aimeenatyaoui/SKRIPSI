@@ -13,8 +13,10 @@ from cbr.engine import FEATURES, ZERO_AS_MISSING, build_artifacts_from_case_base
 
 
 CASE_BASE_PATH = Path("data/case_base.csv")
-CASE_BASE_SEED_PATH = Path("data/case_base_seed.xlsx")
-
+CASE_BASE_SEED_URLS = [
+    "https://raw.githubusercontent.com/aimeenatyaoui/SKRIPSI/main/SKRIPSI/data.xlsx",
+    "https://raw.githubusercontent.com/aimeenatyaoui/SKRIPSI/master/SKRIPSI/data.xlsx",
+]
 
 @dataclass(frozen=True)
 class PatientInput:
@@ -113,19 +115,20 @@ def validate_input(pi: PatientInput) -> list[str]:
 def predict_with_user_model(pi: PatientInput) -> dict[str, Any]:
     # Basis kasus untuk retrieve:
     # 1) prioritas: `data/case_base.csv` (hasil retain)
-    # 2) fallback: `data/case_base_seed.xlsx` (basis kasus awal dari dataset kamu)
+    # 2) fallback: dataset Excel dari GitHub (raw)
     df = load_case_base_df(CASE_BASE_PATH)
     source = "data/case_base.csv"
+
     if df.empty:
-        df = load_case_base_df(CASE_BASE_SEED_PATH)
-        source = "data/case_base_seed.xlsx"
+        for url in CASE_BASE_SEED_URLS:
+            df = load_case_base_df(url)
+            if not df.empty:
+                source = url
+                break
 
     artifacts = build_artifacts_from_case_base(df)
 
-    # Untuk sekarang, bobot MultiSURF belum dibaca dari file (kamu nanti lampirkan).
-    # Kalau sudah ada bobot final (8 angka), kita load dari file dan pakai di sini.
     weights = None
-
     u = asdict(pi)
     k = int(st.session_state.get("k_value", 5))
 
